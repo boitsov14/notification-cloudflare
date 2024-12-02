@@ -2,9 +2,10 @@ import type { IncomingRequestCfProperties } from '@cloudflare/workers-types'
 import { Hono } from 'hono'
 
 type Bindings = {
-  X_API_KEY: string
+  readonly X_API_KEY: string
 }
 
+// biome-ignore lint/style/useNamingConvention:
 const app = new Hono<{ Bindings: Bindings }>()
 
 app.onError((err, c) => {
