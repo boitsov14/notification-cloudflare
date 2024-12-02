@@ -1,6 +1,6 @@
-name = "notification"
-main = "src/index.ts"
-compatibility_date = "2024-11-22"
+name = "notification-cloudflare"
+main = "src/main.ts"
+compatibility_date = "2024-12-02"
 
 # compatibility_flags = [ "nodejs_compat" ]
 
