@@ -5,10 +5,14 @@
     "deploy": "wrangler deploy --minify"
   },
   "dependencies": {
-    "hono": "^4.6.11"
+    "hono": "latest"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20241112.0",
-    "wrangler": "^3.88.0"
+    "@biomejs/biome": "latest",
+    "@cloudflare/workers-types": "latest",
+    "@tsconfig/bun": "latest",
+    "@tsconfig/strictest": "latest",
+    "@types/bun": "latest",
+    "wrangler": "latest"
   }
 }
