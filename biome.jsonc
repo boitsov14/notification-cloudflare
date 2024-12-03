@@ -8,6 +8,9 @@
       "all": true,
       "style": {
         "noDefaultExport": "off"
+      },
+      "suspicious": {
+        "noConsole": "off"
       }
     }
   },
