@@ -14,7 +14,7 @@ app.onError((err, c) => {
 })
 
 app.get('/', c => {
-  const { cf } = c.req.raw as unknown as { cf?: IncomingRequestCfProperties }
+  const { cf } = c.req.raw as { cf?: IncomingRequestCfProperties }
 
   const geolocation = {
     country: cf?.country,
