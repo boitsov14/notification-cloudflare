@@ -3,11 +3,14 @@ import { Hono } from 'hono'
 import { logger } from 'hono/logger'
 
 type Bindings = {
-  readonly X_API_KEY: string
+  readonly DISCORD_URL: string
+  // biome-ignore lint/suspicious/noExplicitAny:
+  readonly RATE_LIMITER: any
 }
 
 // biome-ignore lint/style/useNamingConvention:
 const app = new Hono<{ Bindings: Bindings }>()
+
 app.use(logger())
 
 app.onError((err, c) => {
@@ -16,6 +19,13 @@ app.onError((err, c) => {
 })
 
 app.get('/', async c => {
+  // rate limit
+  const { success } = await c.env.RATE_LIMITER.limit({ key: c.env.DISCORD_URL })
+  if (!success) {
+    return c.json({ error: 'Rate limit exceeded' }, 429)
+  }
+
+  // get geolocation
   const { cf } = c.req.raw as { cf?: IncomingRequestCfProperties }
   const { country, region, city } = cf || {}
 
@@ -23,13 +33,8 @@ app.get('/', async c => {
     country,
     region,
     city,
-    key: c.env.X_API_KEY,
     hi: 'Hello',
   }
-
-  // throw new Error('An error occurred')
-  // wait 1 seconds
-  await new Promise(resolve => setTimeout(resolve, 1000))
 
   return c.json(geolocation)
 })
