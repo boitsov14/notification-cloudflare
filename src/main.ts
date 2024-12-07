@@ -15,28 +15,34 @@ app.use(logger())
 
 app.onError((err, c) => {
   console.error(err)
-  return c.json({ error: 'An unexpected error occurred.' }, 500)
+  return c.text('An unexpected error occurred.', 500)
 })
 
-app.get('/', async c => {
+app.post('/', async c => {
   // rate limit
   const { success } = await c.env.RATE_LIMITER.limit({ key: c.env.DISCORD_URL })
   if (!success) {
-    return c.json({ error: 'Rate limit exceeded' }, 429)
+    return c.text('Rate limit exceeded', 429)
   }
+
+  // get body
+  const { source, message } = await c.req.json()
 
   // get geolocation
   const { cf } = c.req.raw as { cf?: IncomingRequestCfProperties }
   const { country, region, city } = cf || {}
 
-  const geolocation = {
-    country,
-    region,
-    city,
-    hi: 'Hello',
-  }
+  // set content
+  const content =
+    `${source}\n${country} ${region} ${city}\n${message}`.substring(0, 1000)
 
-  return c.json(geolocation)
+  // send to discord
+  // todo
+  // biome-ignore lint/suspicious/noConsoleLog:
+  console.log(content)
+
+  // return 200
+  return c.text('ok')
 })
 
 export default app
