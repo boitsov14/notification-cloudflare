@@ -1,9 +1,7 @@
-import type {
-  IncomingRequestCfProperties,
-  RateLimit,
-} from '@cloudflare/workers-types'
+import type { RateLimit } from '@cloudflare/workers-types'
 import { cloudflareRateLimiter } from '@hono-rate-limiter/cloudflare'
 import { Hono } from 'hono'
+import { GeoMiddleware, getGeo } from 'hono-geo-middleware'
 import { logger } from 'hono/logger'
 
 type Bindings = {
@@ -32,16 +30,21 @@ app.use(
   }),
 )
 
+// get geolocation
+app.use('/*', GeoMiddleware())
+
 app.post('/', async c => {
   // get message
   const { message } = await c.req.json()
 
   // get geolocation
-  const { cf } = c.req.raw as { cf?: IncomingRequestCfProperties }
-  const { country, region, city } = cf || {}
+  const { countryCode, region, city } = getGeo(c)
 
   // set content
-  const content = `${country} ${region} ${city}\n${message}`.substring(0, 1000)
+  const content = `${countryCode} ${region} ${city}\n${message}`.substring(
+    0,
+    1000,
+  )
 
   // send to discord
   // todo

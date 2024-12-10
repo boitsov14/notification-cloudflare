@@ -7,7 +7,8 @@
   },
   "dependencies": {
     "@hono-rate-limiter/cloudflare": "latest",
-    "hono": "latest"
+    "hono": "latest",
+    "hono-geo-middleware": "latest"
   },
   "devDependencies": {
     "@biomejs/biome": "latest",
