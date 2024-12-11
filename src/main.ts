@@ -34,17 +34,14 @@ app.use(
 app.use('/*', GeoMiddleware())
 
 app.post('/', async c => {
-  // get message
-  const { message } = await c.req.json()
+  // get text
+  const text = await c.req.text()
 
   // get geolocation
   const { countryCode, region, city } = getGeo(c)
 
   // set content
-  const content = `${countryCode} ${region} ${city}\n${message}`.substring(
-    0,
-    1000,
-  )
+  const content = `${countryCode} ${region} ${city}\n${text}`.substring(0, 1000)
 
   // send to discord
   // todo
