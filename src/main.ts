@@ -3,6 +3,7 @@ import { cloudflareRateLimiter } from '@hono-rate-limiter/cloudflare'
 import { Hono } from 'hono'
 import { GeoMiddleware, getGeo } from 'hono-geo-middleware'
 import { logger } from 'hono/logger'
+import ky from 'ky'
 
 type Bindings = {
   readonly DISCORD_URL: string
@@ -41,12 +42,14 @@ app.post('/', async c => {
   const { countryCode, region, city } = getGeo(c)
 
   // set content
-  const content = `${countryCode} ${region} ${city}\n${text}`.substring(0, 1000)
+  const content =
+    `@everyone\n${countryCode} ${region} ${city}\n${text}`.substring(0, 1000)
+
+  // log content
+  console.info(content)
 
   // send to discord
-  // todo
-  // biome-ignore lint/suspicious/noConsoleLog:
-  console.log(content)
+  await ky.post(c.env.DISCORD_URL, { json: { content: content } })
 
   // return 200
   return c.text('ok')
