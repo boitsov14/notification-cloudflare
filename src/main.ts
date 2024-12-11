@@ -2,6 +2,7 @@ import type { RateLimit } from '@cloudflare/workers-types'
 import { cloudflareRateLimiter } from '@hono-rate-limiter/cloudflare'
 import { Hono } from 'hono'
 import { GeoMiddleware, getGeo } from 'hono-geo-middleware'
+import { bodyLimit } from 'hono/body-limit'
 import { logger } from 'hono/logger'
 import ky from 'ky'
 import { z } from 'zod'
@@ -51,7 +52,7 @@ app.post('/text', async c => {
   return c.text('ok')
 })
 
-app.post('/file', async c => {
+app.post('/file', bodyLimit({ maxSize: 8 * 1024 * 1024 }), async c => {
   // get multipart data
   const body = await c.req.parseBody()
   // get file
@@ -67,10 +68,6 @@ app.post('/file', async c => {
   )
   // log content
   console.info(content)
-  // check file size: 8MB
-  if (file.size > 8 * 1024 * 1024) {
-    return c.text('File size too large', 413)
-  }
   // read file as buffer
   const buffer = await file.arrayBuffer()
   // create Blob
