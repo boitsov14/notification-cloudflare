@@ -34,7 +34,28 @@ app.use(
 // get geolocation
 app.use('/*', GeoMiddleware())
 
-app.post('/', async c => {
+app.post('/text', async c => {
+  // get text
+  const text = await c.req.text()
+
+  // get geolocation
+  const { countryCode, region, city } = getGeo(c)
+
+  // set content
+  const content =
+    `@everyone\n${countryCode} ${region} ${city}\n${text}`.substring(0, 1000)
+
+  // log content
+  console.info(content)
+
+  // send to discord
+  await ky.post(c.env.DISCORD_URL, { json: { content: content } })
+
+  // return 200
+  return c.text('ok')
+})
+
+app.post('/file', async c => {
   // get text
   const text = await c.req.text()
 
