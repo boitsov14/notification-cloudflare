@@ -69,12 +69,13 @@ app.post('/file', async c => {
   console.info(content)
   // read file as buffer
   const buffer = await file.arrayBuffer()
+  // create Blob
+  const blob = new Blob([buffer])
   // create FormData
   const formData = new FormData()
   // attach content
   formData.append('content', content)
-  // attach file as Blob
-  const blob = new Blob([buffer])
+  // attach file
   formData.append('file', blob, file.name)
   // send to discord
   await ky.post(c.env.DISCORD_URL, { body: formData })
