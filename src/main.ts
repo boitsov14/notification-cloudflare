@@ -42,7 +42,7 @@ app.post('/text', async c => {
   const { countryCode, region, city } = getGeo(c)
   // set content
   const content =
-    `@everyone\n${countryCode} ${region} ${city}\n${text}`.substring(0, 1000)
+    `@everyone\n${countryCode} ${region} ${city}\n${text}`.substring(0, 2000)
   // log content
   console.info(content)
   // send to discord
@@ -63,10 +63,14 @@ app.post('/file', async c => {
   // set content
   const content = `@everyone\n${countryCode} ${region} ${city}`.substring(
     0,
-    1000,
+    2000,
   )
   // log content
   console.info(content)
+  // check file size: 8MB
+  if (file.size > 8 * 1024 * 1024) {
+    return c.text('File size too large', 413)
+  }
   // read file as buffer
   const buffer = await file.arrayBuffer()
   // create Blob
