@@ -4,6 +4,7 @@ import { Hono } from 'hono'
 import { GeoMiddleware, getGeo } from 'hono-geo-middleware'
 import { logger } from 'hono/logger'
 import ky from 'ky'
+import { z } from 'zod'
 
 type Bindings = {
   readonly DISCORD_URL: string
@@ -37,43 +38,52 @@ app.use('/*', GeoMiddleware())
 app.post('/text', async c => {
   // get text
   const text = await c.req.text()
-
   // get geolocation
   const { countryCode, region, city } = getGeo(c)
-
   // set content
   const content =
     `@everyone\n${countryCode} ${region} ${city}\n${text}`.substring(0, 1000)
-
   // log content
   console.info(content)
-
   // send to discord
   await ky.post(c.env.DISCORD_URL, { json: { content: content } })
-
   // return 200
   return c.text('ok')
 })
 
 app.post('/file', async c => {
-  // get text
-  const text = await c.req.text()
-
+  // get multipart data
+  const body = await c.req.parseBody()
+  // get file
+  // biome-ignore lint/complexity/useLiteralKeys:
+  const file = body['file'] as File
+  z.instanceof(File).parse(file)
   // get geolocation
   const { countryCode, region, city } = getGeo(c)
-
   // set content
-  const content =
-    `@everyone\n${countryCode} ${region} ${city}\n${text}`.substring(0, 1000)
-
+  const content = `@everyone\n${countryCode} ${region} ${city}`.substring(
+    0,
+    1000,
+  )
   // log content
   console.info(content)
-
+  // read file as buffer
+  const buffer = await file.arrayBuffer()
+  // create FormData
+  const formData = new FormData()
+  // attach content
+  formData.append('content', content)
+  // attach file as Blob
+  const blob = new Blob([buffer])
+  formData.append('file', blob, file.name)
   // send to discord
-  await ky.post(c.env.DISCORD_URL, { json: { content: content } })
-
+  await ky.post(c.env.DISCORD_URL, { body: formData })
   // return 200
   return c.text('ok')
 })
+
+// TODO: add more routes
+// path: /latex
+// get latex code and render it to png and send it to discord
 
 export default app
