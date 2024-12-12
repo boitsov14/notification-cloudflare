@@ -13,6 +13,10 @@ type Env = {
   readonly RATE_LIMITER: RateLimit
 }
 
+// constants
+const DISCORD_CONTENT_LIMIT = 2000
+const DISCORD_FILE_SIZE_LIMIT = 8 * 1024 * 1024
+
 const app = new Hono()
 // log requests
 app.use(logger())
@@ -43,7 +47,10 @@ app.post('/text', async c => {
   const { countryCode, region, city } = getGeo(c)
   // set content
   const content =
-    `@everyone\n${countryCode} ${region} ${city}\n${text}`.substring(0, 2000)
+    `@everyone\n${countryCode} ${region} ${city}\n${text}`.substring(
+      0,
+      DISCORD_CONTENT_LIMIT,
+    )
   // log content
   console.info(content)
   // send to discord
@@ -52,7 +59,7 @@ app.post('/text', async c => {
   return c.text('ok')
 })
 
-app.post('/file', bodyLimit({ maxSize: 8 * 1024 * 1024 }), async c => {
+app.post('/file', bodyLimit({ maxSize: DISCORD_FILE_SIZE_LIMIT }), async c => {
   // get multipart data
   const body = await c.req.parseBody()
   // get file
@@ -66,7 +73,7 @@ app.post('/file', bodyLimit({ maxSize: 8 * 1024 * 1024 }), async c => {
   // set content
   const content = `@everyone\n${countryCode} ${region} ${city}`.substring(
     0,
-    2000,
+    DISCORD_CONTENT_LIMIT,
   )
   // log content
   console.info(content)
