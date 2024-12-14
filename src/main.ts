@@ -64,17 +64,10 @@ app.post('/file', bodyLimit({ maxSize: DISCORD_FILE_SIZE_LIMIT }), async c => {
   const body = await c.req.parseBody()
   // get file
   const { file } = z.object({ file: z.instanceof(File) }).parse(body)
-  // if file is tex
-  if (file.name.endsWith('.tex')) {
-    // TODO: compile tex
-  }
   // get geolocation
   const { countryCode, region, city } = getGeo(c)
   // set content
-  const content = `@everyone\n${countryCode} ${region} ${city}`.substring(
-    0,
-    DISCORD_CONTENT_LIMIT,
-  )
+  const content = `@everyone\n${countryCode} ${region} ${city}`
   // log content
   console.info(content)
   // read file as buffer
