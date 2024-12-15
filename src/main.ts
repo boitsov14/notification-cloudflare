@@ -19,15 +19,6 @@ const DISCORD_FILE_SIZE_LIMIT = 8 * 1024 * 1024 // 8MB
 const app = new Hono()
 // log requests
 app.use(logger())
-// handle errors
-app.onError(async (err, c) => {
-  console.error(`Unexpected error: ${err}`)
-  await ky.post(env<Env>(c).DISCORD_URL, {
-    json: { content: '@everyone\nUnexpected error: discord-notification' },
-    throwHttpErrors: false,
-  })
-  return c.text('Unexpected error', 500)
-})
 // rate limiter
 app.use(
   cloudflareRateLimiter({
@@ -38,102 +29,144 @@ app.use(
 // get geolocation
 app.use('/*', GeoMiddleware())
 
-app.post('/text', async c => {
-  // check Content-Type is text/plain
-  if (c.req.header('Content-Type') !== 'text/plain') {
-    console.error('Invalid Content-Type')
-    return c.text('Invalid Content-Type', 400)
+app.post('/text', c => {
+  const main = async () => {
+    try {
+      // check Content-Type is text/plain
+      if (c.req.header('Content-Type') !== 'text/plain') {
+        console.error('Invalid Content-Type')
+        return
+      }
+      // get text
+      const text = await c.req.text()
+      // get geolocation
+      const { countryCode, region, city } = getGeo(c)
+      // set content
+      const content =
+        `@everyone\n${countryCode} ${region} ${city}\n${text}`.substring(
+          0,
+          DISCORD_CONTENT_LIMIT,
+        )
+      // log content
+      console.info(content)
+      // send to discord
+      console.info('Sending to discord')
+      await ky.post(env<Env>(c).DISCORD_URL, { json: { content: content } })
+      console.info('Success!')
+    } catch (err) {
+      handleError(err, env<Env>(c).DISCORD_URL)
+    }
   }
-  // get text
-  const text = await c.req.text()
-  // get geolocation
-  const { countryCode, region, city } = getGeo(c)
-  // set content
-  const content =
-    `@everyone\n${countryCode} ${region} ${city}\n${text}`.substring(
-      0,
-      DISCORD_CONTENT_LIMIT,
-    )
-  // log content
-  console.info(content)
-  // send to discord
-  console.info('Sending to discord')
-  await ky.post(env<Env>(c).DISCORD_URL, { json: { content: content } })
-  console.info('Success!')
+  c.executionCtx.waitUntil(main())
   return c.text('ok')
 })
 
-app.post('/svg', async c => {
-  // check Content-Type is image/svg+xml
-  if (c.req.header('Content-Type') !== 'image/svg+xml') {
-    console.error('Invalid Content-Type')
-    return c.text('Invalid Content-Type', 400)
+app.post('/svg', c => {
+  const main = async () => {
+    try {
+      // check Content-Type is image/svg+xml
+      if (c.req.header('Content-Type') !== 'image/svg+xml') {
+        console.error('Invalid Content-Type')
+        return
+      }
+      // get geolocation
+      const { countryCode, region, city } = getGeo(c)
+      // set content
+      const content = `@everyone\n${countryCode} ${region} ${city}`
+      // log content
+      console.info(content)
+      // get svg
+      const svg = await c.req.text()
+      // check size
+      if (svg.length > DISCORD_FILE_SIZE_LIMIT) {
+        console.error('File size too large')
+        console.info('Sending error to discord')
+        await ky.post(env<Env>(c).DISCORD_URL, {
+          json: { content: `${content}\nFile size too large` },
+        })
+        console.info('Success!')
+        return
+      }
+      // create FormData
+      const formData = new FormData()
+      // attach file
+      formData.append('file', new Blob([svg]), 'out.svg')
+      // attach content
+      formData.append('content', content)
+      // send to discord
+      console.info('Sending to discord')
+      await ky.post(env<Env>(c).DISCORD_URL, { body: formData })
+      console.info('Success!')
+    } catch (err) {
+      handleError(err, env<Env>(c).DISCORD_URL)
+    }
   }
-  // get svg
-  const svg = await c.req.text()
-  // check size
-  if (svg.length > DISCORD_FILE_SIZE_LIMIT) {
-    console.error('File size too large')
-    return c.text('File size too large', 400)
-  }
-  // create FormData
-  const formData = new FormData()
-  // attach file
-  formData.append('file', new Blob([svg]), 'out.svg')
-  // get geolocation
-  const { countryCode, region, city } = getGeo(c)
-  // set content
-  const content = `@everyone\n${countryCode} ${region} ${city}`
-  // log content
-  console.info(content)
-  // attach content
-  formData.append('content', content)
-  // send to discord
-  console.info('Sending to discord')
-  await ky.post(env<Env>(c).DISCORD_URL, { body: formData })
-  console.info('Success!')
+  c.executionCtx.waitUntil(main())
   return c.text('ok')
 })
 
-app.post('/tex-to-png', async c => {
-  // check Content-Type is application/x-tex
-  if (c.req.header('Content-Type') !== 'application/x-tex') {
-    console.error('Invalid Content-Type')
-    return c.text('Invalid Content-Type', 400)
+app.post('/tex-to-png', c => {
+  const main = async () => {
+    try {
+      // check Content-Type is application/x-tex
+      if (c.req.header('Content-Type') !== 'application/x-tex') {
+        console.error('Invalid Content-Type')
+        return
+      }
+      // get geolocation
+      const { countryCode, region, city } = getGeo(c)
+      // set content
+      const content = `@everyone\n${countryCode} ${region} ${city}`
+      // log content
+      console.info(content)
+      // get tex
+      const tex = await c.req.text()
+      // get png
+      console.info('Sending to latex server')
+      const res = await ky.post(env<Env>(c).LATEX_URL, {
+        headers: { 'Content-Type': 'application/x-tex' },
+        body: tex,
+      })
+      const png = await res.arrayBuffer()
+      console.info('Success!')
+      // check size
+      if (png.byteLength > DISCORD_FILE_SIZE_LIMIT) {
+        console.error('File size too large')
+        console.info('Sending error to discord')
+        await ky.post(env<Env>(c).DISCORD_URL, {
+          json: { content: `${content}\nFile size too large` },
+        })
+        console.info('Success!')
+        return
+      }
+      // create FormData
+      const formData = new FormData()
+      // attach file
+      formData.append('file', new Blob([png]), 'out.png')
+      // attach content
+      formData.append('content', content)
+      // send to discord
+      console.info('Sending to discord')
+      await ky.post(env<Env>(c).DISCORD_URL, { body: formData })
+      console.info('Success!')
+    } catch (err) {
+      handleError(err, env<Env>(c).DISCORD_URL)
+    }
   }
-  // get tex
-  const tex = await c.req.text()
-  // get png
-  console.info('Sending to latex server')
-  const res = await ky.post(env<Env>(c).LATEX_URL, {
-    headers: { 'Content-Type': 'application/x-tex' },
-    body: tex,
+  c.executionCtx.waitUntil(main())
+  return c.text('ok')
+})
+
+const handleError = async (err: unknown, discordUrl: string) => {
+  console.error(`Unexpected error: ${err}`)
+  console.info('Sending error to discord')
+  const { ok } = await ky.post(discordUrl, {
+    json: { content: '@everyone\nUnexpected error: discord-notification' },
+    throwHttpErrors: false,
   })
-  // get png
-  const png = await res.arrayBuffer()
-  console.info('Success!')
-  // check size
-  if (png.byteLength > DISCORD_FILE_SIZE_LIMIT) {
-    console.error('File size too large')
-    return c.text('File size too large', 400)
+  if (ok) {
+    console.info('Success!')
   }
-  // create FormData
-  const formData = new FormData()
-  // attach file
-  formData.append('file', new Blob([png]), 'out.png')
-  // get geolocation
-  const { countryCode, region, city } = getGeo(c)
-  // set content
-  const content = `@everyone\n${countryCode} ${region} ${city}`
-  // log content
-  console.info(content)
-  // attach content
-  formData.append('content', content)
-  // send to discord
-  console.info('Sending to discord')
-  await ky.post(env<Env>(c).DISCORD_URL, { body: formData })
-  console.info('Success!')
-  return c.text('ok')
-})
+}
 
 export default app
