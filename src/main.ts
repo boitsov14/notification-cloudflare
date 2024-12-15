@@ -79,12 +79,7 @@ app.post('/svg', c => {
       const svg = await c.req.text()
       // check size
       if (svg.length > DISCORD_FILE_SIZE_LIMIT) {
-        console.error('File size too large')
-        console.info('Sending error to discord')
-        await ky.post(env<Env>(c).DISCORD_URL, {
-          json: { content: `${content}\nFile size too large` },
-        })
-        console.info('Success!')
+        handleFileTooLarge(content, env<Env>(c).DISCORD_URL)
         return
       }
       // create FormData
@@ -131,12 +126,7 @@ app.post('/tex-to-png', c => {
       console.info('Success!')
       // check size
       if (png.byteLength > DISCORD_FILE_SIZE_LIMIT) {
-        console.error('File size too large')
-        console.info('Sending error to discord')
-        await ky.post(env<Env>(c).DISCORD_URL, {
-          json: { content: `${content}\nFile size too large` },
-        })
-        console.info('Success!')
+        handleFileTooLarge(content, env<Env>(c).DISCORD_URL)
         return
       }
       // create FormData
@@ -156,6 +146,15 @@ app.post('/tex-to-png', c => {
   c.executionCtx.waitUntil(main())
   return c.text('ok')
 })
+
+const handleFileTooLarge = async (content: string, discordUrl: string) => {
+  console.error('File too large')
+  console.info('Sending error to discord')
+  await ky.post(discordUrl, {
+    json: { content: `${content}\nFile size too large` },
+  })
+  console.info('Success!')
+}
 
 const handleError = async (err: unknown, discordUrl: string) => {
   console.error(`Unexpected error: ${err}`)
