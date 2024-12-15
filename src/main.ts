@@ -13,7 +13,7 @@ type Env = {
 
 // constants
 const DISCORD_CONTENT_LIMIT = 2000
-const DISCORD_FILE_SIZE_LIMIT = 8 * 1024 * 1024
+const DISCORD_FILE_SIZE_LIMIT = 8 * 1024 * 1024 // 8MB
 
 const app = new Hono()
 // log requests
@@ -78,12 +78,10 @@ app.post('/svg', async c => {
     console.error(text)
     return c.text(text, 400)
   }
-  // create Blob
-  const blob = new Blob([svg])
   // create FormData
   const formData = new FormData()
   // attach file
-  formData.append('file', blob, 'out.svg')
+  formData.append('file', new Blob([svg]), 'out.svg')
   // get geolocation
   const { countryCode, region, city } = getGeo(c)
   // set content
