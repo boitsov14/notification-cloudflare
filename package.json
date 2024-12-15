@@ -9,8 +9,7 @@
     "@hono-rate-limiter/cloudflare": "latest",
     "hono": "latest",
     "hono-geo-middleware": "latest",
-    "ky": "latest",
-    "zod": "latest"
+    "ky": "latest"
   },
   "devDependencies": {
     "@biomejs/biome": "latest",

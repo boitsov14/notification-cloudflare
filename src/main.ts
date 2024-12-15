@@ -3,10 +3,8 @@ import { cloudflareRateLimiter } from '@hono-rate-limiter/cloudflare'
 import { Hono } from 'hono'
 import { GeoMiddleware, getGeo } from 'hono-geo-middleware'
 import { env } from 'hono/adapter'
-import { bodyLimit } from 'hono/body-limit'
 import { logger } from 'hono/logger'
 import ky from 'ky'
-import { z } from 'zod'
 
 type Env = {
   readonly DISCORD_URL: string
@@ -23,7 +21,7 @@ app.use(logger())
 // handle errors
 app.onError(async (err, c) => {
   console.error(err)
-  const text = 'An unexpected error occurred: Could not send to Discord.'
+  const text = 'Unexpected error: Could not send to Discord.'
   await ky.post(env<Env>(c).DISCORD_URL, {
     json: { content: `@everyone\n${text}` },
     throwHttpErrors: false,
@@ -41,6 +39,12 @@ app.use(
 app.use('/*', GeoMiddleware())
 
 app.post('/text', async c => {
+  // check Content-Type is text/plain
+  if (c.req.header('Content-Type') !== 'text/plain') {
+    const text = 'Invalid Content-Type'
+    console.error(text)
+    return c.text(text, 400)
+  }
   // get text
   const text = await c.req.text()
   // get geolocation
@@ -59,27 +63,35 @@ app.post('/text', async c => {
   return c.text('ok')
 })
 
-app.post('/file', bodyLimit({ maxSize: DISCORD_FILE_SIZE_LIMIT }), async c => {
-  // get multipart data
-  const body = await c.req.parseBody()
-  // get file
-  const { file } = z.object({ file: z.instanceof(File) }).parse(body)
+app.post('/svg', async c => {
+  // check Content-Type is image/svg+xml
+  if (c.req.header('Content-Type') !== 'image/svg+xml') {
+    const text = 'Invalid Content-Type'
+    console.error(text)
+    return c.text(text, 400)
+  }
+  // get svg
+  const svg = await c.req.text()
+  // check size
+  if (svg.length > DISCORD_FILE_SIZE_LIMIT) {
+    const text = 'File size too large'
+    console.error(text)
+    return c.text(text, 400)
+  }
+  // create Blob
+  const blob = new Blob([svg])
+  // create FormData
+  const formData = new FormData()
+  // attach file
+  formData.append('file', blob, 'out.svg')
   // get geolocation
   const { countryCode, region, city } = getGeo(c)
   // set content
   const content = `@everyone\n${countryCode} ${region} ${city}`
   // log content
   console.info(content)
-  // read file as buffer
-  const buffer = await file.arrayBuffer()
-  // create Blob
-  const blob = new Blob([buffer])
-  // create FormData
-  const formData = new FormData()
   // attach content
   formData.append('content', content)
-  // attach file
-  formData.append('file', blob, file.name)
   // send to discord
   await ky.post(env<Env>(c).DISCORD_URL, { body: formData })
   // return 200
