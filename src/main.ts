@@ -54,7 +54,7 @@ app.post('/text', c => {
       await ky.post(env<Env>(c).DISCORD_URL, { json: { content: content } })
       console.info('Success!')
     } catch (err) {
-      handleError(err, env<Env>(c).DISCORD_URL)
+      await handleError(err, env<Env>(c).DISCORD_URL)
     }
   }
   c.executionCtx.waitUntil(main())
@@ -79,7 +79,7 @@ app.post('/svg', c => {
       const svg = await c.req.text()
       // check size
       if (svg.length > DISCORD_FILE_SIZE_LIMIT) {
-        handleFileTooLarge(content, env<Env>(c).DISCORD_URL)
+        await handleFileTooLarge(content, env<Env>(c).DISCORD_URL)
         return
       }
       // create FormData
@@ -93,7 +93,7 @@ app.post('/svg', c => {
       await ky.post(env<Env>(c).DISCORD_URL, { body: formData })
       console.info('Success!')
     } catch (err) {
-      handleError(err, env<Env>(c).DISCORD_URL)
+      await handleError(err, env<Env>(c).DISCORD_URL)
     }
   }
   c.executionCtx.waitUntil(main())
@@ -126,7 +126,7 @@ app.post('/tex-to-png', c => {
       console.info('Success!')
       // check size
       if (png.byteLength > DISCORD_FILE_SIZE_LIMIT) {
-        handleFileTooLarge(content, env<Env>(c).DISCORD_URL)
+        await handleFileTooLarge(content, env<Env>(c).DISCORD_URL)
         return
       }
       // create FormData
@@ -140,7 +140,7 @@ app.post('/tex-to-png', c => {
       await ky.post(env<Env>(c).DISCORD_URL, { body: formData })
       console.info('Success!')
     } catch (err) {
-      handleError(err, env<Env>(c).DISCORD_URL)
+      await handleError(err, env<Env>(c).DISCORD_URL)
     }
   }
   c.executionCtx.waitUntil(main())
@@ -158,13 +158,14 @@ const handleFileTooLarge = async (content: string, discordUrl: string) => {
 
 const handleError = async (err: unknown, discordUrl: string) => {
   console.error(`Unexpected error: ${err}`)
-  console.info('Sending error to discord')
-  const { ok } = await ky.post(discordUrl, {
-    json: { content: '@everyone\nUnexpected error: discord-notification' },
-    throwHttpErrors: false,
-  })
-  if (ok) {
+  console.info('Sending error to discord!')
+  try {
+    await ky.post(discordUrl, {
+      json: { content: '@everyone\nUnexpected error: discord-notification' },
+    })
     console.info('Success!')
+  } catch (err) {
+    console.error(`Could not send error to discord: ${err}`)
   }
 }
 
