@@ -50,7 +50,7 @@ app.post('/text', GeoMiddleware(), c => {
       // send to discord
       console.info('Sending to discord')
       await ky.post(env<Env>(c).DISCORD_URL, { json: { content: content } })
-      console.info('Success!')
+      console.info('Succeeded to send to discord')
     } catch (err) {
       await handleError(err, env<Env>(c).DISCORD_URL)
     }
@@ -83,7 +83,7 @@ app.post('/svg', c => {
       // send to discord
       console.info('Sending to discord')
       await ky.post(env<Env>(c).DISCORD_URL, { body: formData })
-      console.info('Success!')
+      console.info('Succeeded to send to discord')
     } catch (err) {
       await handleError(err, env<Env>(c).DISCORD_URL)
     }
@@ -102,14 +102,14 @@ app.post('/tex-to-png', c => {
       }
       // get tex
       const tex = await c.req.text()
-      // get png
+      // send to latex server
       console.info('Sending to latex server')
       const res = await ky.post(env<Env>(c).LATEX_URL, {
         headers: { 'Content-Type': 'application/x-tex' },
         body: tex,
       })
       const png = await res.arrayBuffer()
-      console.info('Success!')
+      console.info('Succeeded to get png')
       // check size
       if (png.byteLength > DISCORD_FILE_SIZE_LIMIT) {
         await handleFileTooLargeError(env<Env>(c).DISCORD_URL)
@@ -124,7 +124,7 @@ app.post('/tex-to-png', c => {
       // send to discord
       console.info('Sending to discord')
       await ky.post(env<Env>(c).DISCORD_URL, { body: formData })
-      console.info('Success!')
+      console.info('Succeeded to send to discord')
     } catch (err) {
       await handleError(err, env<Env>(c).DISCORD_URL)
     }
@@ -139,7 +139,7 @@ const handleFileTooLargeError = async (discordUrl: string) => {
   await ky.post(discordUrl, {
     json: { content: '@everyone\ndiscord-notification: File size too large' },
   })
-  console.info('Success!')
+  console.info('Succeeded to send error to discord')
 }
 
 const handleError = async (err: unknown, discordUrl: string) => {
@@ -149,7 +149,7 @@ const handleError = async (err: unknown, discordUrl: string) => {
     await ky.post(discordUrl, {
       json: { content: '@everyone\ndiscord-notification: Unexpected error' },
     })
-    console.info('Success!')
+    console.info('Succeeded to send error to discord')
   } catch (err) {
     console.error(`Could not send error to discord: ${err}`)
   }
