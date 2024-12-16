@@ -26,10 +26,8 @@ app.use(
     keyGenerator: () => '',
   }),
 )
-// get geolocation
-app.use('/*', GeoMiddleware())
 
-app.post('/text', c => {
+app.post('/text', GeoMiddleware(), c => {
   const main = async () => {
     try {
       // check Content-Type is text/plain
@@ -69,17 +67,11 @@ app.post('/svg', c => {
         console.error('Invalid Content-Type')
         return
       }
-      // get geolocation
-      const { countryCode, region, city } = getGeo(c)
-      // set content
-      const content = `@everyone\n${countryCode} ${region} ${city}`
-      // log content
-      console.info(content)
       // get svg
       const svg = await c.req.text()
       // check size
       if (svg.length > DISCORD_FILE_SIZE_LIMIT) {
-        await handleFileTooLarge(content, env<Env>(c).DISCORD_URL)
+        await handleFileTooLargeError(env<Env>(c).DISCORD_URL)
         return
       }
       // create FormData
@@ -87,7 +79,7 @@ app.post('/svg', c => {
       // attach file
       formData.append('file', new Blob([svg]), 'out.svg')
       // attach content
-      formData.append('content', content)
+      formData.append('content', '@everyone')
       // send to discord
       console.info('Sending to discord')
       await ky.post(env<Env>(c).DISCORD_URL, { body: formData })
@@ -108,12 +100,6 @@ app.post('/tex-to-png', c => {
         console.error('Invalid Content-Type')
         return
       }
-      // get geolocation
-      const { countryCode, region, city } = getGeo(c)
-      // set content
-      const content = `@everyone\n${countryCode} ${region} ${city}`
-      // log content
-      console.info(content)
       // get tex
       const tex = await c.req.text()
       // get png
@@ -126,7 +112,7 @@ app.post('/tex-to-png', c => {
       console.info('Success!')
       // check size
       if (png.byteLength > DISCORD_FILE_SIZE_LIMIT) {
-        await handleFileTooLarge(content, env<Env>(c).DISCORD_URL)
+        await handleFileTooLargeError(env<Env>(c).DISCORD_URL)
         return
       }
       // create FormData
@@ -134,7 +120,7 @@ app.post('/tex-to-png', c => {
       // attach file
       formData.append('file', new Blob([png]), 'out.png')
       // attach content
-      formData.append('content', content)
+      formData.append('content', '@everyone')
       // send to discord
       console.info('Sending to discord')
       await ky.post(env<Env>(c).DISCORD_URL, { body: formData })
@@ -147,11 +133,11 @@ app.post('/tex-to-png', c => {
   return c.text('ok')
 })
 
-const handleFileTooLarge = async (content: string, discordUrl: string) => {
+const handleFileTooLargeError = async (discordUrl: string) => {
   console.error('File too large')
   console.info('Sending error to discord')
   await ky.post(discordUrl, {
-    json: { content: `${content}\nFile size too large` },
+    json: { content: '@everyone\ndiscord-notification: File size too large' },
   })
   console.info('Success!')
 }
@@ -161,7 +147,7 @@ const handleError = async (err: unknown, discordUrl: string) => {
   console.info('Sending error to discord!')
   try {
     await ky.post(discordUrl, {
-      json: { content: '@everyone\nUnexpected error: discord-notification' },
+      json: { content: '@everyone\ndiscord-notification: Unexpected error' },
     })
     console.info('Success!')
   } catch (err) {
