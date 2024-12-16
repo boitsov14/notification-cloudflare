@@ -32,7 +32,7 @@ app.post('/text', GeoMiddleware(), c => {
     try {
       // check Content-Type is text/plain
       if (c.req.header('Content-Type') !== 'text/plain') {
-        console.error('Invalid Content-Type')
+        console.error(`Invalid Content-Type: ${c.req.header('Content-Type')}`)
         return
       }
       // get text
@@ -64,7 +64,7 @@ app.post('/svg', c => {
     try {
       // check Content-Type is image/svg+xml
       if (c.req.header('Content-Type') !== 'image/svg+xml') {
-        console.error('Invalid Content-Type')
+        console.error(`Invalid Content-Type: ${c.req.header('Content-Type')}`)
         return
       }
       // get svg
@@ -97,7 +97,7 @@ app.post('/tex-to-png', c => {
     try {
       // check Content-Type is application/x-tex
       if (c.req.header('Content-Type') !== 'application/x-tex') {
-        console.error('Invalid Content-Type')
+        console.error(`Invalid Content-Type: ${c.req.header('Content-Type')}`)
         return
       }
       // get tex
