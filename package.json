@@ -1,5 +1,4 @@
 {
-  "name": "notification",
   "scripts": {
     "dev": "wrangler dev",
     "check": "bun biome check --write src",

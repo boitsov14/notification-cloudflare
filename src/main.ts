@@ -3,6 +3,7 @@ import { cloudflareRateLimiter } from '@hono-rate-limiter/cloudflare'
 import { Hono } from 'hono'
 import { GeoMiddleware, getGeo } from 'hono-geo-middleware'
 import { env } from 'hono/adapter'
+import { cors } from 'hono/cors'
 import { logger } from 'hono/logger'
 import ky from 'ky'
 
@@ -26,17 +27,27 @@ app.use(
     keyGenerator: () => '',
   }),
 )
+// set CORS
+app.use('*', cors())
 
 app.post('/text', GeoMiddleware(), c => {
   const main = async () => {
     try {
-      // check Content-Type is text/plain
-      if (c.req.header('Content-Type') !== 'text/plain') {
+      // get text
+      let text = ''
+      if (c.req.header('Content-Type') === 'text/plain') {
+        text = await c.req.text()
+      } else if (
+        c.req.header('Content-Type')?.startsWith('multipart/form-data')
+      ) {
+        const formData = await c.req.formData()
+        formData.forEach((value, key) => {
+          text += `${key}: ${value}\n`
+        })
+      } else {
         console.error(`Invalid Content-Type: ${c.req.header('Content-Type')}`)
         return
       }
-      // get text
-      const text = await c.req.text()
       // get geolocation
       const { countryCode, region, city } = getGeo(c)
       // set content
