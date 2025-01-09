@@ -5,7 +5,7 @@ import { GeoMiddleware, getGeo } from 'hono-geo-middleware'
 import { env } from 'hono/adapter'
 import { cors } from 'hono/cors'
 import { logger } from 'hono/logger'
-import ky from 'ky'
+import _ky from 'ky'
 
 // environment variables
 type Env = {
@@ -17,6 +17,12 @@ type Env = {
 // constants
 const DISCORD_CONTENT_LIMIT = 2000
 const DISCORD_FILE_SIZE_LIMIT = 8 * 1024 * 1024 // 8MB
+
+// override ky to retry post requests
+const ky = _ky.create({
+  retry: { methods: ['post'] },
+  hooks: { afterResponse: [() => console.info('Success')] },
+})
 
 const app = new Hono()
 // log requests
@@ -30,8 +36,10 @@ app.use(
 )
 // set CORS
 app.use('*', cors())
+// use GeoMiddleware
+app.use(GeoMiddleware())
 
-app.post('/text', GeoMiddleware(), c => {
+app.post('/text', c => {
   const main = async () => {
     try {
       // get text
@@ -65,7 +73,6 @@ app.post('/text', GeoMiddleware(), c => {
       // send to discord
       console.info('Sending to discord')
       await ky.post(env<Env>(c).DISCORD_URL, { json: { content: content } })
-      console.info('Succeeded to send to discord')
     } catch (err) {
       await handleError(err, c)
     }
@@ -92,7 +99,6 @@ app.post('/tex-to-png', c => {
           body: tex,
         })
         .arrayBuffer()
-      console.info('Succeeded to get png')
       // check size
       if (png.byteLength > DISCORD_FILE_SIZE_LIMIT) {
         console.error('PNG too large')
@@ -111,7 +117,6 @@ app.post('/tex-to-png', c => {
       // send to discord
       console.info('Sending to discord')
       await ky.post(env<Env>(c).DISCORD_URL, { body: formData })
-      console.info('Succeeded to send to discord')
     } catch (err) {
       await handleError(err, c)
     }
@@ -124,12 +129,7 @@ const handleError = async (err: unknown, c: Context) => {
   console.error(`Unexpected error: ${err}`)
   console.info('Sending error to discord')
   const content = '@everyone\ndiscord-notification: Unexpected error'
-  try {
-    await ky.post(env<Env>(c).DISCORD_URL, { json: { content: content } })
-    console.info('Succeeded to send error to discord')
-  } catch (err) {
-    console.error(`Could not send error to discord: ${err}`)
-  }
+  await ky.post(env<Env>(c).DISCORD_URL, { json: { content: content } })
 }
 
 export default app
