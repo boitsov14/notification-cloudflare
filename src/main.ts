@@ -18,7 +18,7 @@ type Env = {
 const DISCORD_CONTENT_LIMIT = 2000
 const DISCORD_FILE_SIZE_LIMIT = 8 * 1024 * 1024 // 8MB
 
-// override ky to retry post requests
+// override ky
 const ky = _ky.create({
   retry: { methods: ['post'] },
   hooks: { afterResponse: [() => console.info('Success')] },
