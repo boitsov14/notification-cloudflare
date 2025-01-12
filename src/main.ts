@@ -84,20 +84,12 @@ app.post('/text', c => {
 app.post('/tex-to-png', c => {
   const main = async () => {
     try {
-      // check Content-Type is application/x-tex
-      if (c.req.header('Content-Type') !== 'application/x-tex') {
-        console.error(`Invalid Content-Type: ${c.req.header('Content-Type')}`)
-        return
-      }
       // get tex
       const tex = await c.req.text()
       // send to latex server
       console.info('Sending to latex server')
       const png = await ky
-        .post(env<Env>(c).LATEX_URL, {
-          headers: { 'Content-Type': 'application/x-tex' },
-          body: tex,
-        })
+        .post(env<Env>(c).LATEX_URL, { body: tex })
         .arrayBuffer()
       // check size
       if (png.byteLength > DISCORD_FILE_SIZE_LIMIT) {
