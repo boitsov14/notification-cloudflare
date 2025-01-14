@@ -16,7 +16,6 @@ type Env = {
 
 // constants
 const DISCORD_CONTENT_LIMIT = 2000
-const DISCORD_FILE_SIZE_LIMIT = 8 * 1024 * 1024 // 8MB
 
 // override ky
 const ky = _ky.create({
@@ -39,27 +38,11 @@ app.use('*', cors())
 // use GeoMiddleware
 app.use(GeoMiddleware())
 
-app.post('/text', c => {
+app.post('/text', async c => {
+  // get text
+  const text = await c.req.text()
   const main = async () => {
     try {
-      // get text
-      let text = ''
-      if (c.req.header('Content-Type') === 'text/plain') {
-        // if plain text
-        text = await c.req.text()
-      } else if (
-        c.req.header('Content-Type')?.startsWith('multipart/form-data')
-      ) {
-        // if form-data
-        const formData = await c.req.formData()
-        formData.forEach((value, key) => {
-          text += `${key}: ${value}\n`
-        })
-      } else {
-        // if neither
-        console.error(`Invalid Content-Type: ${c.req.header('Content-Type')}`)
-        return
-      }
       // get geolocation
       const { countryCode, region, city } = getGeo(c)
       // set content
@@ -81,31 +64,31 @@ app.post('/text', c => {
   return c.text('ok')
 })
 
-app.post('/tex-to-png', c => {
+app.post('/tex-to-png', async c => {
+  // get tex
+  const tex = await c.req.text()
   const main = async () => {
     try {
-      // get tex
-      const tex = await c.req.text()
       // send to latex server
       console.info('Sending to latex server')
-      const png = await ky
-        .post(env<Env>(c).LATEX_URL, { body: tex })
-        .arrayBuffer()
-      // check size
-      if (png.byteLength > DISCORD_FILE_SIZE_LIMIT) {
-        console.error('PNG too large')
+      const response = await ky.post(env<Env>(c).LATEX_URL, { body: tex })
+      // check content type
+      if (response.headers.get('content-type') !== 'image/png') {
+        // get text
+        const text = await response.text()
+        console.error(text)
         console.info('Sending error to discord')
-        const content = '@everyone\ndiscord-notification: PNG size too large'
+        const content = `@everyone\ndiscord-notification: ${text}`
         await ky.post(env<Env>(c).DISCORD_URL, { json: { content: content } })
-        console.info('Succeeded to send error to discord')
         return
       }
+      const png = await response.blob()
       // create FormData
       const formData = new FormData()
       // attach content
       formData.append('content', '@everyone')
       // attach file
-      formData.append('file', new Blob([png]), 'out.png')
+      formData.append('file', png, 'out.png')
       // send to discord
       console.info('Sending to discord')
       await ky.post(env<Env>(c).DISCORD_URL, { body: formData })
