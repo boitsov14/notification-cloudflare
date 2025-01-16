@@ -103,7 +103,7 @@ app.post('/tex-to-png', async c => {
 const handleError = async (err: unknown, c: Context) => {
   console.error(`Unexpected error: ${err}`)
   console.info('Sending error to discord')
-  const content = '@everyone\ndiscord-notification: Unexpected error'
+  const content = '@everyone\nnotification-cloudflare: Unexpected error'
   await ky.post(env<Env>(c).DISCORD_URL, { json: { content: content } })
 }
 
