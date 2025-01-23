@@ -1,6 +1,6 @@
 name = "notification-cloudflare"
 main = "src/main.ts"
-compatibility_date = "2025-1-12"
+compatibility_date = "2025-1-23"
 
 [[unsafe.bindings]]
 name = "RATE_LIMITER"

@@ -76,7 +76,7 @@ app.post('/tex-to-png', async c => {
       if (response.headers.get('content-type') !== 'image/png') {
         // get text
         const text = await response.text()
-        console.error(text)
+        console.info(text)
         console.info('Sending error to discord')
         const content = `@everyone\ndiscord-notification: ${text}`
         await ky.post(env<Env>(c).DISCORD_URL, { json: { content: content } })
