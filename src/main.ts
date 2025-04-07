@@ -100,6 +100,32 @@ app.post('/tex-to-png', async c => {
   return c.text('ok')
 })
 
+// TODO: 2025/04/04 旧バージョンを廃止次第削除
+app.post('/png', async c => {
+  // get form data
+  const formData = await c.req.formData()
+  // get content and file
+  const content = formData.get('content') as string
+  const file = formData.get('file') as File
+  const main = async () => {
+    try {
+      // create FormData for Discord
+      const discordFormData = new FormData()
+      // attach content
+      discordFormData.append('content', `@everyone${content}`)
+      // attach file
+      discordFormData.append('file', file, 'out.png')
+      // send to discord
+      console.info('Sending to discord')
+      await ky.post(env<Env>(c).DISCORD_URL, { body: discordFormData })
+    } catch (err) {
+      await handleError(err, c)
+    }
+  }
+  c.executionCtx.waitUntil(main())
+  return c.text('ok')
+})
+
 const handleError = async (err: unknown, c: Context) => {
   console.error(`Unexpected error: ${err}`)
   console.info('Sending error to discord')
